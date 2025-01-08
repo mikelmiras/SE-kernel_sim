@@ -13,6 +13,12 @@ typedef enum {
     FINISHED
 } ProcessState;
 
+typedef struct {
+    int pgb;
+    int code;
+    int data;
+} mm;
+
 // Estructura para representar un proceso (PCB)
 typedef struct {
     int pid;                 // Identificador único
@@ -69,7 +75,6 @@ void enqueue_process(ProcessQueue *pq, PCB process) {
 
 // Función para desencolar un proceso
 PCB dequeue_process(ProcessQueue *pq) {
-    pthread_mutex_lock(&pq->mutex);
     PCB process = { .pid = -1, .burst_time = 0, .state = FINISHED };
 
     if (pq->size > 0) {
@@ -78,7 +83,6 @@ PCB dequeue_process(ProcessQueue *pq) {
         pq->size--;
     }
 
-    pthread_mutex_unlock(&pq->mutex);
     return process;
 }
 
@@ -115,7 +119,6 @@ void *process_generator_thread(void *arg) {
             .burst_time = rand() % 500 + 100, // Burst time aleatorio (100-600 ms)
             .state = READY
         };
-
         enqueue_process(&process_queue, new_process);
     }
     return NULL;
@@ -147,7 +150,6 @@ void *scheduler_thread(void *arg) {
 
         // Extraer el proceso de la cola
         PCB process = dequeue_process(&process_queue);
-
         pthread_mutex_unlock(&process_queue.mutex);
 
         // Ejecutar según la política
