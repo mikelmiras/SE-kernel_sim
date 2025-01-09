@@ -1,0 +1,1 @@
+char *get_config_value(const char *filename, const char *key);

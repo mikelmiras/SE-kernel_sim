@@ -4,9 +4,11 @@
 #include <unistd.h>
 #include <string.h>
 #include <getopt.h>
+#include "config.h"
 
 #define MAX_PROCESSES 100
 #define MAX_EXECUTING_THREADS 4 // Máximo de hilos ejecutando procesos
+#define CONFIG_FILE "config"
 
 // Estructura para representar un estado de proceso
 typedef enum
@@ -45,6 +47,7 @@ typedef struct
 {
     int clock_frequency;   // Frecuencia del reloj (ms)
     int timer_interval;    // Intervalo del temporizador (ms)
+    int consumed_time;     // Tiempo consumido por los procesos (ms)
 
 } SystemConfig;
 
@@ -72,6 +75,7 @@ pthread_mutex_t executor_mutex = PTHREAD_MUTEX_INITIALIZER;
 int current_executor = -1; // Which thread is currently allowed to execute
 
 int QUANTUM = 100;
+int CLOCK_FREQUENCY = 100;
 
 // Add these structures at the top
 typedef struct
@@ -86,6 +90,7 @@ typedef struct
 {
     int worker_id;
     WorkerSlot *slot;
+    SystemConfig *system;
     Scheduler *scheduler;
 } WorkerArgs;
 
@@ -95,7 +100,11 @@ WorkerSlot *worker_slots;
 // Add this global variable at the top with others
 pthread_cond_t timer_tick = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t timer_mutex = PTHREAD_MUTEX_INITIALIZER;
-int timer_ticked = 0;
+
+pthread_cond_t clock_tick = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t clock_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+int timer_ticked, clock_ticked = 0;
 
 // Función para encolar un proceso
 void enqueue_process(ProcessQueue *pq, PCB process)
@@ -106,7 +115,7 @@ void enqueue_process(ProcessQueue *pq, PCB process)
         pq->queue[pq->rear] = process;
         pq->rear = (pq->rear + 1) % MAX_PROCESSES;
         pq->size++;
-        printf("[Queue] Proceso PID %d encolado (burst_time: %d ms). Tamaño actual: %d\n",
+        printf("[Queue] Proceso PID %d encolado (burst_time: %d ms).%d\n",
                process.pid, process.burst_time, pq->size);
     }
     else
@@ -138,11 +147,19 @@ void *clock_thread(void *arg)
     SystemConfig *config = (SystemConfig *)arg;
     while (1)
     {
-        usleep(config->clock_frequency * 1000); // Simular el intervalo en ms
+        usleep(config->clock_frequency * 1000); // Simulate the interval in ms
+        pthread_mutex_lock(&clock_mutex);
         printf("[Clock] Tick\n");
+        clock_ticked = 1;
+        pthread_cond_broadcast(&clock_tick); // Wake all worker threads
+        pthread_mutex_unlock(&clock_mutex);
+        config->consumed_time += config->clock_frequency;
+        usleep((CLOCK_FREQUENCY - 10) * 1000);
+        clock_ticked = 0;
     }
     return NULL;
 }
+
 
 // Función del hilo del temporizador
 void *timer_thread(void *arg)
@@ -194,12 +211,18 @@ void *worker_thread(void *arg)
     WorkerArgs *args = (WorkerArgs *)arg;
     int my_id = args->worker_id;
     WorkerSlot *my_slot = args->slot;
-    Scheduler *s = args->scheduler;
+    SystemConfig *s = args->system;
+    Scheduler *scheduler = args->scheduler;
 
     printf("[Worker %d] Iniciando worker thread\n", my_id);
 
     while (1)
     {
+        pthread_mutex_lock(&clock_mutex);
+        while (!clock_ticked) {
+            pthread_cond_wait(&clock_tick, &clock_mutex);
+        }
+        pthread_mutex_unlock(&clock_mutex);
         // Wait for a process to be assigned
         pthread_mutex_lock(&my_slot->mutex);
         while (!my_slot->assigned)
@@ -209,22 +232,14 @@ void *worker_thread(void *arg)
 
         // Get the process
         PCB process = my_slot->process;
-        my_slot->assigned = 0;
         pthread_mutex_unlock(&my_slot->mutex);
 
         // Execute the process
         printf("[Worker %d] Ejecutando proceso PID %d (burst_time: %d ms)\n",
                my_id, process.pid, process.burst_time);
 
-        usleep(process.burst_time * 1000);
-        if (strcmp(s->policy, "RR") == 0)
-        {
-            int prev_burst = process.burst_time;
-            process.burst_time -= QUANTUM;
-            printf("Updated burst value for %d: %d (prev was %d)\n", process.pid, process.burst_time, prev_burst);
-        }else{
-            process.burst_time = 0;
-        }
+        usleep(CLOCK_FREQUENCY * 1000);
+        process.burst_time -= CLOCK_FREQUENCY;
         if (process.burst_time <= 0)
         {
             process.state = FINISHED;
@@ -235,50 +250,51 @@ void *worker_thread(void *arg)
             process.state = READY;
             printf("[Worker %d] Process PID %d has not finished yet. Remaining burst_time: %d\n", my_id, process.pid, process.burst_time);
             enqueue_process(&process_queue, process);
+            if (strcmp(scheduler->policy, "RR") == 0 && s->consumed_time >= scheduler->quantum)
+            {
+                pthread_mutex_lock(&my_slot->mutex);
+                my_slot->assigned = 0;
+                pthread_mutex_unlock(&my_slot->mutex);
+                printf("[Worker %d] Quantum expirado para proceso PID %d\n", my_id, process.pid);
+            }else{
+                pthread_mutex_lock(&my_slot->mutex);
+                my_slot->assigned = 0;
+                pthread_mutex_unlock(&my_slot->mutex);
+            }
         }
-
-        // Signal that we're done
-        pthread_cond_broadcast(&process_queue.cond);
+        pthread_cond_signal(&process_queue.cond);
     }
     return NULL;
 }
 
-// Modify the scheduler thread
 void *scheduler_thread(void *arg)
 {
     Scheduler *scheduler = (Scheduler *)arg;
-    int next_worker = 0;
+    int next_worker = 0; // Used for Round Robin policy
 
     printf("[Scheduler] Iniciando scheduler\n");
 
     while (1)
     {
+        // Lock the queue and wait for a process to be available
         pthread_mutex_lock(&process_queue.mutex);
-
-        // Wait for processes
         while (process_queue.size == 0)
         {
             pthread_cond_wait(&process_queue.cond, &process_queue.mutex);
         }
 
-        // Get next process
-        PCB process = dequeue_process(&process_queue);
-        pthread_mutex_unlock(&process_queue.mutex);
+        // Find an available worker based on the policy
+        int selected_worker = -1;
 
-        // Select worker based on policy
         if (strcmp(scheduler->policy, "FCFS") == 0)
         {
-            // Find first available worker
+            // First Come First Serve: Find the first available worker
             for (int i = 0; i < total_threads; i++)
             {
                 pthread_mutex_lock(&worker_slots[i].mutex);
                 if (!worker_slots[i].assigned)
                 {
-                    worker_slots[i].process = process;
-                    worker_slots[i].assigned = 1;
-                    printf("[Scheduler] Asignando proceso PID %d al worker %d\n",
-                           process.pid, i);
-                    pthread_cond_signal(&worker_slots[i].cond);
+                    selected_worker = i;
                     pthread_mutex_unlock(&worker_slots[i].mutex);
                     break;
                 }
@@ -287,19 +303,48 @@ void *scheduler_thread(void *arg)
         }
         else if (strcmp(scheduler->policy, "RR") == 0)
         {
-            // Round Robin between workers
-            pthread_mutex_lock(&worker_slots[next_worker].mutex);
-            worker_slots[next_worker].process = process;
-            worker_slots[next_worker].assigned = 1;
-            printf("[Scheduler] Asignando proceso PID %d al worker %d\n",
-                   process.pid, next_worker);
-            pthread_cond_signal(&worker_slots[next_worker].cond);
-            pthread_mutex_unlock(&worker_slots[next_worker].mutex);
-            next_worker = (next_worker + 1) % total_threads;
+            // Round Robin: Find the next available worker in order
+            for (int i = 0; i < total_threads; i++)
+            {
+                int worker_index = (next_worker + i) % total_threads;
+                pthread_mutex_lock(&worker_slots[worker_index].mutex);
+                if (!worker_slots[worker_index].assigned)
+                {
+                    selected_worker = worker_index;
+                    pthread_mutex_unlock(&worker_slots[worker_index].mutex);
+                    next_worker = (worker_index + 1) % total_threads; // Update for next round
+                    break;
+                }
+                pthread_mutex_unlock(&worker_slots[worker_index].mutex);
+            }
         }
+
+        // If no worker is available, retry later
+        if (selected_worker == -1)
+        {
+            pthread_mutex_unlock(&process_queue.mutex);
+            sched_yield(); // Yield CPU and retry later
+            continue;
+        }
+
+        // Dequeue the process
+        PCB process = dequeue_process(&process_queue);
+        pthread_mutex_unlock(&process_queue.mutex);
+
+        // Assign the process to the selected worker
+        pthread_mutex_lock(&worker_slots[selected_worker].mutex);
+        worker_slots[selected_worker].process = process;
+        worker_slots[selected_worker].assigned = 1;
+        printf("[Scheduler] Asignando proceso PID %d al worker %d\n",
+               process.pid, selected_worker);
+        pthread_cond_signal(&worker_slots[selected_worker].cond);
+        pthread_mutex_unlock(&worker_slots[selected_worker].mutex);
     }
+
     return NULL;
 }
+
+
 
 // Función principal
 int main(int argc, char *argv[])
@@ -311,17 +356,30 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    // Configurar el Scheduler
+    
+    char *thread_count = get_config_value(CONFIG_FILE, "THREAD_COUNT");
+    char *quantum = get_config_value(CONFIG_FILE, "QUANTUM");
+    char *CLOCK_FREQUENCY_CONFIG = get_config_value(CONFIG_FILE, "CLOCK_FREQUENCY");
+    char *TIMER_INTERVAL = get_config_value(CONFIG_FILE, "TIMER_INTERVAL");
+
+    int threads = 4;
+    int timer_interval = 500;
+    if (thread_count) threads = atoi(thread_count);
+    if (quantum) QUANTUM = atoi(quantum);
+    if (CLOCK_FREQUENCY_CONFIG) CLOCK_FREQUENCY = atoi(CLOCK_FREQUENCY_CONFIG);
+    if (TIMER_INTERVAL) timer_interval = atoi(TIMER_INTERVAL);
+    printf("Thread count is: %d\n", threads);
     Scheduler scheduler = {
-        .quantum = (argc == 3) ? atoi(argv[2]) : 100 // Quantum predeterminado: 100 ms
+        .quantum = QUANTUM
     };
     QUANTUM = scheduler.quantum;
     strcpy(scheduler.policy, argv[1]);
 
     // Configuración inicial del sistema
     SystemConfig config = {
-        .clock_frequency = 100,
-        .timer_interval = 500};
+        .clock_frequency = CLOCK_FREQUENCY,
+        .timer_interval = timer_interval
+        };
 
     // Crear hilos
     pthread_t clock_tid, timer_tid, process_gen_tid;
@@ -329,7 +387,7 @@ int main(int argc, char *argv[])
     pthread_create(&timer_tid, NULL, timer_thread, &config);
     pthread_create(&process_gen_tid, NULL, process_generator_thread, &config);
 
-    int num_workers = (argc == 4) ? atoi(argv[3]) : MAX_EXECUTING_THREADS;
+    int num_workers = threads;
     total_threads = num_workers;
 
     // Initialize worker slots
@@ -349,6 +407,7 @@ int main(int argc, char *argv[])
     {
         worker_args[i].worker_id = i;
         worker_args[i].slot = &worker_slots[i];
+        worker_args[i].system = &config;
         worker_args[i].scheduler = &scheduler;
         pthread_create(&worker_tids[i], NULL, worker_thread, &worker_args[i]);
     }
