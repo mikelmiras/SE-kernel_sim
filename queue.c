@@ -1,7 +1,5 @@
-#define MAX_PROCESSES 100
 #include "definitions.h"
 #include <stdio.h>
-
 void enqueue_process(ProcessQueue *pq, PCB process)
 {
     pthread_mutex_lock(&pq->mutex);
@@ -10,7 +8,7 @@ void enqueue_process(ProcessQueue *pq, PCB process)
         pq->queue[pq->rear] = process;
         pq->rear = (pq->rear + 1) % MAX_PROCESSES;
         pq->size++;
-        printf("[Queue] Proceso PID %d encolado (burst_time: %d ms). Tamaño actual: %d\n",
+        printf("[Queue] Proceso PID %d encolado (burst_time: %d ms).%d\n",
                process.pid, process.burst_time, pq->size);
     }
     else
@@ -24,6 +22,7 @@ void enqueue_process(ProcessQueue *pq, PCB process)
 // Función para desencolar un proceso
 PCB dequeue_process(ProcessQueue *pq)
 {
+    pthread_mutex_lock(&pq->mutex);
     PCB process = {.pid = -1, .burst_time = 0, .state = FINISHED};
 
     if (pq->size > 0)
@@ -32,6 +31,7 @@ PCB dequeue_process(ProcessQueue *pq)
         pq->front = (pq->front + 1) % MAX_PROCESSES;
         pq->size--;
     }
-
+    pthread_mutex_unlock(&pq->mutex);
     return process;
 }
+
