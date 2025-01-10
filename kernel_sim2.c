@@ -134,16 +134,18 @@ void *scheduler_thread(void *arg)
 // Receiver thread function
 void *worker_thread(void *arg)
 {
-    WorkerArgs *worker_args = (WorkerArgs *)arg;
-    Worker *worker = worker_args->worker;
-    System *system = worker_args->system;
+    // WorkerArgs *worker_args = (WorkerArgs *)arg;
+    // Worker *worker = worker_args->worker;
+    // System *system = worker_args->system;
+
+    Worker *worker = (Worker *)arg;
+
     while (1)
     {
         pthread_mutex_lock(&clock_mutex);
         pthread_cond_wait(&clock_signal, &clock_mutex);
         pthread_mutex_unlock(&clock_mutex);
         PCB *current_process = &(worker->process);
-        printf("[CORE %d]: Tick received. Working on PID %d\n", worker->worker_id, current_process->pid);
         if (current_process->pid == -1 || current_process->state == FINISHED)  {
             worker->available = 1;
             continue;
@@ -268,7 +270,7 @@ for (int i = 0; i < WORKER_THREADS; i++)
         .worker = &WORKERS[i],
     };
 
-    if (pthread_create(&receiver_tids[i], NULL, worker_thread, &worker_arg) != 0)
+    if (pthread_create(&receiver_tids[i], NULL, worker_thread, &WORKERS[i]) != 0)
     {
         perror("Failed to create worker thread");
         exit(EXIT_FAILURE);

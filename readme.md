@@ -1,155 +1,43 @@
 # Introducción
 
-Este proyecto consiste en un simulador de kernel de sistema operativo implementado en lenguaje C. El objetivo es simular el comportamiento de un sistema con múltiples hilos, que incluye componentes clave como el reloj, temporizador, generador de procesos y un Scheduler/Dispatcher para planificar la ejecución de procesos.
+El propósito del proyecto descrito en este reporte es la implementación de un sistema de planificación de procesos que simule un ambiente multitarea en el que varios procesos compiten por la CPU. Este sistema utiliza múltiples hilos de ejecución (threads) para gestionar los procesos, asignarles la CPU y asegurar que se ejecuten en el orden correcto de acuerdo con las políticas de planificación especificadas.
 
-El sistema debe gestionar procesos en una cola compartida, implementar políticas de planificación como First-Come, First-Served (FCFS) y Round Robin (RR), y garantizar la sincronización y comunicación entre los diferentes hilos mediante el uso de mutex y variables de condición.
+Se exploran las técnicas de planificación de procesos más comunes, como First Come First Served (FCFS) y Shortest Job First (SJF), las cuales se emplean para organizar los procesos según diferentes criterios de eficiencia. FCFS es un enfoque sencillo en el que los procesos se ejecutan en el orden en que llegan, mientras que SJF prioriza los procesos con tiempos de ejecución más cortos. En este contexto, el sistema implementado tiene la capacidad de simular ambas políticas, permitiendo comparar su desempeño en diferentes escenarios.
 
-## Requisitos del Proyecto
-
-### Componentes Principales
-1. Reloj (Clock):
-    - Genera ciclos de tiempo (ticks) con una frecuencia configurable.
-2. Temporizador (Timer):
-    - Genera señales periódicas (timer ticks) con una frecuencia fija.
-3. Generador de Procesos (Process Generator):
-    - Crea procesos con tiempos de ejecución aleatorios.
-    - Encola los procesos en la cola compartida.
-4. Scheduler/Dispatcher:
-    - Planifica los procesos para su ejecución en función de políticas seleccionadas:
-        - **FCFS**: Ejecuta procesos en orden de llegada.
-        - **Round Robin**: Ejecuta procesos en intervalos de tiempo fijo (quantum).
-    - Coordina los cambios de contexto entre procesos.
-## Estructuras de Datos
-1. Process Control Block (PCB):
-    - Representa un proceso.
-    - Campos principales:
-```c
-typedef struct {
-    int pid;                 // Identificador único
-    int burst_time;          // Tiempo de ejecución restante
-    ProcessState state;      // READY, RUNNING o FINISHED
-} PCB;
-```
-2. Cola de Procesos:
-    - Cola circular para almacenar procesos.
-    - Métodos para encolar (`enqueue_process`) y desencolar (`dequeue_process`).
-3. Configuración del Sistema:
-    - Frecuencias configurables para el reloj, temporizador y generación de procesos.
-    - Política de planificación y quantum para el Scheduler.
-## Diseño del Sistema
-
-### 1. Hilos del Sistema
-#### **Reloj (Clock)**
-
-- Marca los ciclos (ticks) con una frecuencia fija.
-- Simula el tiempo del sistema.
-
-#### **Temporizador (Timer)**
-
-- Genera eventos periódicos que activan al Scheduler y otros subsistemas.
-
-#### **Generador de Procesos**
-
-- Crea procesos con tiempos de ejecución aleatorios.
-- Encola los procesos en la cola compartida, protegida por un mutex.
-#### **Scheduler/Dispatcher**
-
-- Desencola procesos de la cola compartida.
-- Ejecuta los procesos según la política configurada:
-    - **FCFS**: Ejecuta procesos completos en el orden en que llegan.
-    - **RR**: Ejecuta procesos en intervalos fijos (`quantum`) y reencola procesos si aún tienen tiempo de ejecución restante.
-
-### 2. Políticas de Planificación
-#### First-Come, First-Served (FCFS)
-
-- #### Descripción:
-    - Ejecuta procesos en el orden en que llegan.
-    - No permite interrupciones hasta que el proceso finalice.
-- #### Implementación:
-    - Se desencola un proceso y se ejecuta completamente.
-    - Cambia el estado del proceso de READY a RUNNING y luego a FINISHED.
+La simulación también incluye la gestión de un sistema de interrupciones a través de un reloj simulado, el cual genera eventos a intervalos regulares para activar y desencadenar las transiciones de estado de los procesos. Este sistema se implementa utilizando una arquitectura multihilo, donde los hilos representan tanto los procesos que se ejecutan en la CPU como los encargados de la gestión de eventos, la programación y el seguimiento de los estados de los procesos.
 
 
-#### Round Robin (RR)
+# Descripción general del sistema
+El sistema desarrollado es una simulación de la planificación de procesos en un sistema operativo multitarea. Este simula un entorno donde múltiples procesos son generados, encolados y ejecutados por la CPU de acuerdo con una política de planificación. A continuación, se describe cada uno de los componentes que forman parte de este sistema.
 
-- #### Descripción:
-    - Divide el tiempo de CPU en intervalos fijos (quantum).
-    - Si un proceso no termina en su quantum, se reencola con el tiempo restante.
-- #### Implementación:
-    - Ejecuta el proceso durante `min(burst_time, quantum)`.
-    - Si el tiempo restante es mayor que el quantum, el proceso se reencola en la cola compartida.
+1- **Generación de procesos**: El sistema tiene un hilo dedicado a la generación de procesos. Este hilo se encarga de crear nuevos procesos a intervalos regulares, de acuerdo con un multiplicador de generación de procesos que se ajusta en la configuración del sistema. Cada proceso tiene un identificador único (PID), un tiempo de ejecución estimado (burst time) y un estado, que puede ser READY, RUNNING, o FINISHED. Los procesos son generados aleatoriamente con un tiempo de ejecución dentro de un rango determinado.
 
-### 3. Sincronización
-El sistema utiliza mutex y variables de condición para garantizar que los hilos trabajen de forma coordinada:
+2- **Encolado de Procesos**:
 
-- **Mutex**: Protege el acceso concurrente a la cola de procesos.
-- **Variables de condición**: Permiten notificar al Scheduler cuando hay procesos en la cola.
+-   **Cola de procesos (ProcessQueue)**: Esta cola contiene los procesos listos para ser ejecutados, siguiendo la política de planificación First Come, First Served (FCFS), donde los procesos se ejecutan en el orden en que llegaron.
+- **Cola de Procesos Prioritarios (PriorityProcessQueue)**: Esta cola es utilizada cuando se emplea la política Shortest Job First (SJF), donde los procesos con menor tiempo de ejecución tienen mayor prioridad para ser ejecutados primero.
 
-## Implementación
+Ambas colas están protegidas por mecanismos de sincronización como mutexes y condiciones, lo que asegura un acceso seguro a las colas en un entorno multihilo.
 
-El código fuente del sistema se organiza en los siguientes componentes:
+3- **Hilos de planificación y ejecución**: El sistema está compuesto por varios hilos de ejecución, cada uno con una función específica:
+- **Hilo del Reloj (Clock Thread)**: Este hilo simula un reloj de alta precisión que genera eventos a intervalos regulares, lo que permite sincronizar la ejecución de los procesos y coordinar el avance del sistema.
 
-1. Funciones del Sistema
-    - `enqueue_process`: Encola un proceso en la cola compartida.
-    - `dequeue_process`: Desencola un proceso de la cola compartida.
-    - `dispatch_process`: Simula la ejecución de un proceso.
-2. Hilos del Sistema
-    - `clock_thread`: Simula los ticks del reloj.
-    - `timer_thread`: Genera señales periódicas del temporizador.
-    - `process_generator_thread`: Genera procesos con tiempos de ejecución aleatorios.
-    - `scheduler_thread`: Planifica y ejecuta procesos según la política configurada.
-3. Configuración
-    - Los parámetros del sistema (frecuencias y política de planificación) se configuran al inicio y se pasan como argumentos al programa.
-4. Ejecución
-    - Se compila el código usando gcc y se ejecuta especificando la política y el quantum (en el caso de Round Robin).
-## Ejecución del Sistema
+- **Hilo Generador de Procesos (Process Generator Thread)**: Se encarga de generar nuevos procesos en función del intervalo de tiempo configurado.
 
-### Compilación
-```bash
-gcc -pthread -o kernel_simulator kernel_simulator.c
-```
+- **Hilo del Planificador (Scheduler Thread)**: Este hilo se encarga de asignar los procesos listos a los trabajadores disponibles (hilos de la CPU), respetando la política de planificación seleccionada. Si hay procesos disponibles y trabajadores libres, el planificador les asigna los procesos, actualizando su estado y el estado de los trabajadores.
 
-### Ejecución
-1. Política FCFS: 
-```bash
-./kernel_simulator FCFS
-```
-2. Política Round Robin (quantum = 200 ms):
-```bash
-./kernel_simulator RR 200
-```
-## Flujo de Ejecución
+- **Hilos de Trabajadores (Worker Threads)**: Son los hilos que representan los núcleos de la CPU. Cada uno de estos hilos ejecuta un proceso a la vez, tomando el siguiente proceso disponible según la política de planificación. Los trabajadores pueden estar en tres estados: **READY** (listos para ejecutar), **RUNNING** (ejecutando), o **FINISHED** (finalizados).
 
-1. Inicialización del Sistema:
-    -   Se crean las estructuras de datos y los hilos del sistema.
-    - Se configuran las frecuencias y la política de planificación.
-2. Generación de Procesos:
-    - El generador de procesos crea procesos periódicamente y los encola en la cola compartida.
-3. Planificación y Ejecución:
-    - El Scheduler desencola los procesos y los ejecuta según la política configurada.
-    - En Round Robin, los procesos con tiempo restante se reencolan.
-4. Finalización:
-    - El proceso se marca como FINISHED cuando su tiempo de ejecución llega a 0.
-## Resultados Esperados
+4- **Manejo de Temporizadores**: El sistema utiliza un hilo de temporizador (Timer Thread) que coordina el avance del sistema mediante la señalización de eventos a intervalos regulares. Este hilo asegura que los hilos de ejecución, como el planificador o los trabajadores, puedan reaccionar en los momentos correctos.
 
-1. FCFS:
-    - Los procesos se ejecutan en el orden en que llegan.
-    - Cada proceso se ejecuta completamente antes de que otro comience.
-2. Round Robin:
-    - Los procesos se ejecutan en intervalos de tiempo fijos.
-    - Los procesos que no terminan en su quantum se reencolan hasta que finalizan.
-## Conclusiones
+- **First Come, First Served (FCFS)**: En esta política, los procesos se ejecutan en el orden en que llegan. No se realiza ninguna consideración de priorización, por lo que el primer proceso que entra en el sistema es el primero en ser ejecutado.
 
-- El simulador implementa un kernel básico con soporte para múltiples hilos y sincronización mediante mutex y variables de condición.
-- Las políticas de planificación FCFS y Round Robin están correctamente implementadas y configuran comportamientos diferentes en el sistema.
-- El sistema puede ampliarse fácilmente para incluir nuevas políticas o funcionalidades adicionales.
+- **Shortest Job First (SJF)**: Aquí, los procesos con los tiempos de ejecución más cortos tienen prioridad para ser ejecutados antes que los procesos con tiempos de ejecución más largos.
 
-## Posibles Extensiones
+Ambas políticas se implementan mediante estructuras de datos específicas (colas) y los procesos se gestionan según el criterio correspondiente.
 
-1. Implementar políticas adicionales como:
-    - Shortest Job Next (SJN).
-    - Priority Scheduling.
-2. Incluir métricas de desempeño:
-    - Tiempo de espera promedio.
-    - Tiempo de respuesta promedio.
-3. Simular múltiples CPUs o núcleos.
+6- **Sincronización de hilos**: Debido a que el sistema utiliza múltiples hilos para ejecutar diferentes funciones, la sincronización entre ellos es fundamental. Se utilizan mutexes y variables de condición (condition variables) para garantizar que los recursos compartidos, como las colas de procesos y las señales de reloj, sean gestionados de manera segura y eficiente.
+
+7- **Configuración del Sistema**: El sistema es altamente configurable mediante un archivo de configuración. Entre las opciones configurables se incluyen el número de núcleos de CPU (hilos de trabajo), la frecuencia del reloj (en milisegundos), el multiplicador de generación de procesos (que determina la cantidad de procesos generados) y la política de planificación a utilizar (FCFS o SJF). Estos parámetros son leídos desde un archivo de configuración y aplicados al sistema al momento de su inicio.
+
+Este diseño modular permite adaptar fácilmente el sistema a diferentes escenarios de simulación y realizar pruebas comparativas entre las distintas políticas de planificación.
