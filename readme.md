@@ -22,7 +22,7 @@ eta programa abiarazteko:
 ```
 
 ## Konfigurazioa:
-Konfigurazioa ```config``` deitutako fitxategian aurki daiteke:
+Konfigurazioa ```config``` deitutako fitxategian aurki daiteke (iruzkinak deitu dira azaltzeko zer esan nahi duen aukera bakoitza, baina konfigurazio fitxategiak ezin ditu iruzkinik erabili):
 ```
 CORE_COUNT = 4 // CPU-aren nukleo zenbakia ezarri 
 CLOCK_FREQUENCY = 1000 // Erlojuraren maiztasuna (ms-etan)
