@@ -22,3 +22,12 @@ typedef struct
     pthread_mutex_t mutex;    // Mutex para sincronización
     pthread_cond_t cond;      // Condición para notificar disponibilidad
 } ProcessQueue;
+
+
+typedef struct
+{
+    PCB queue[MAX_PROCESSES]; // Arreglo de procesos
+    int size;                 // Tamaño actual
+    pthread_mutex_t mutex;    // Mutex para sincronización
+    pthread_cond_t cond;      // Condición para notificar disponibilidad
+} PriorityProcessQueue;

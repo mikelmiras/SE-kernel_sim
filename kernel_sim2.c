@@ -75,6 +75,10 @@ void *scheduler_thread(void *arg)
         pthread_mutex_unlock(&timer_mutex);
 
         PCB next_process = dequeue_process(&process_queue);
+
+
+
+        // FCFS: El scheduler en cada timer tick iterará por todos los workers disponibles. Si hay un worker libre, se intentará asignar un proceso a ese worker. En esta política, un worker queda libre cuando el proceso ha terminado de ejecutarse.
     }
 }
 
