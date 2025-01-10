@@ -9,6 +9,30 @@ Prozesuak planifikatzeko teknika ohikoenak aztertzen dira, hala nola First Come 
 Simulazioan, halaber, etendura-sistema bat kudeatzen da, erloju simulatu baten bidez. Erloju horrek gertaerak sortzen ditu tarte erregularretan, prozesuen egoera-trantsizioak aktibatzeko eta abiarazteko. Sistema hori hari anitzeko arkitektura erabiliz inplementatzen da, eta hariek *PUZ*ean exekutatzen diren prozesuak nahiz ekitaldien kudeaketaz, programazioaz eta prozesuen egoeren jarraipenaz arduratzen direnak irudikatzen dituzte.
 
 
+# Erabilpena eta konfigurazioa:
+
+## Erabilpena:
+Konpilatzeko, hurrengo komandoa erabili:
+```bash
+gcc *.c -o kernel_sim
+```
+eta programa abiarazteko:
+```bash
+./kernel_sim
+```
+
+## Konfigurazioa:
+Konfigurazioa ```config``` deitutako fitxategian aurki daiteke:
+```
+CORE_COUNT = 4 // CPU-aren nukleo zenbakia ezarri 
+CLOCK_FREQUENCY = 1000 // Erlojuraren maiztasuna (ms-etan)
+TIMER_INTERVAL = 2000 // Timerraren maiztasuna (ms-etan)
+SCHEDULER_POLICY = FCFS // Exekuzio politika: FCFS edo SJF
+PROCESS_GENERATION_MULTIPLIER = 4 // Zenbat prozesu sortzen diren ezartzen du. Handiago izan da, prozesu gehiago sortuko dira
+```
+### Denboragailua
+Denboragailua erloju tick-en arabera kalkulatzen da, hau da; denboratzaileak tick bat bidaliko du (TIMER_INTERVAL / CLOCK_FREQUENCY) erloju tick bakoitzeko. Adibidez: erloju maiztasuna 1000 bada eta denboragailu maiztasuna 2000 bada; timerrak tick bat bidaliko du erlojuaren 2 tick bakoitzeko.
+
 # Sistemaren deskribapen orokorra
 
 Garatutako sistema prozesuen plangintzaren simulazio bat da, ataza anitzeko sistema eragile batean. Ingurune horretan, prozesu ugari sortzen, kolatzen eta gauzatzen ditu *PUZ*ak, plangintza-politika baten arabera. Jarraian, sistema hau osatzen duten osagai guztiak deskribatuko ditugu.
