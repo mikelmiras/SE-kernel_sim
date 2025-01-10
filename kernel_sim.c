@@ -57,13 +57,14 @@ void *process_generator_thread(void *arg)
     int pid_counter = 1;
     System *system = (System *)arg;
     int interval = system->interval_ms;
+    int PROCESS_GENERATION_MULTIPLIER = atoi(get_config_value("config", "PROCESS_GENERATION_MULTIPLIER"));
     while (1)
     {
         pthread_mutex_lock(&timer_mutex);
         pthread_cond_wait(&timer_signal, &timer_mutex);
-        printf("[Process Generator]: Generating new process. Interval: %d\n", interval);
+        printf("[Process Generator]: Generating new process.\n");
         pthread_mutex_unlock(&timer_mutex);
-        int random_chance = (rand() % WORKER_THREADS) + 1;
+        int random_chance = (rand() % WORKER_THREADS) + PROCESS_GENERATION_MULTIPLIER;
         for (int i = 0; i < random_chance; i++)
         {
 
@@ -214,7 +215,7 @@ int main()
     char *timer_interval;
     timer_interval = get_config_value("config", "TIMER_INTERVAL");
     int interval_ms = atoi(clock_frequency);                           // Clock interval in milliseconds
-    int ticks_interval = atoi(clock_frequency) / atoi(timer_interval); // Timer interval in clock ticks
+    int ticks_interval = atoi(timer_interval) / interval_ms; // Timer interval in clock ticks
     int thread_ids[WORKER_THREADS];
     char *selected_policy = get_config_value("config", "SCHEDULER_POLICY");
 

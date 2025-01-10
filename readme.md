@@ -17,7 +17,7 @@ Garatutako sistema prozesuen plangintzaren simulazio bat da, ataza anitzeko sist
 
 2- **Prozesuak kolatzea**:
 
--   **Prozesu-ilara (*ProcessQueue*)**: Ilara honek gauzatzeko prest dauden prozesuak biltzen ditu, First Come, First Served (*FCFS*) plangintza-politikari jarraituz, non prozesuak iritsi ziren ordenan exekutatzen diren.
+-   **Prozesu-ilara (*ProcessQueue*)**: Ilara honek gauzatzeko prest dauden prozesuak biltzen ditu, First Come, First Served (*FCFS*) plangintza-politikari jarraituz, non prozesuak iritsi ziren ordenan exekutatzen diren (FIFO datu egitura erabiliz).
 - **Lehentasunezko prozesuen ilara (*PriorityProcessQueue*)**: Ilara hau Shortest Job First (*SJF*) politika erabiltzen denean erabiltzen da, non exekuzio-denbora laburragoa duten prozesuek lehentasun handiagoa duten lehenengo exekutatzeko.
 
 Bi ilarak sinkronizazio-mekanismoek babesten dituzte, hala nola mutexek eta baldintzek. Horri esker, buztanetarako sarbide segurua bermatzen da hari anitzeko ingurune batean.
