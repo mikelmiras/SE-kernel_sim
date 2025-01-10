@@ -8,7 +8,7 @@ void enqueue_process(ProcessQueue *pq, PCB process)
         pq->queue[pq->rear] = process;
         pq->rear = (pq->rear + 1) % MAX_PROCESSES;
         pq->size++;
-        printf("[Queue] Proceso PID %d encolado (burst_time: %d ms).%d\n",
+        printf("[Queue] Proceso PID %d encolado (burst_time: %d ms). Procesos en cola: %d\n",
                process.pid, process.burst_time, pq->size);
     }
     else

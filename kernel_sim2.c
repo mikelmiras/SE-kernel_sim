@@ -64,6 +64,21 @@ void *process_generator_thread(void *arg)
     }
 }
 
+void *scheduler_thread(void *arg)
+{
+    int pid_counter = 1;
+    while (1)
+    {
+        pthread_mutex_lock(&timer_mutex);
+        pthread_cond_wait(&timer_signal, &timer_mutex);
+        printf("[Scheduler]: Dequeuing new process\n");
+        pthread_mutex_unlock(&timer_mutex);
+
+        PCB next_process = dequeue_process(&process_queue);
+    }
+}
+
+
 // Receiver thread function
 void *worker_thread(void *arg)
 {
@@ -111,6 +126,7 @@ int main()
     pthread_t receiver_tids[WORKER_THREADSS];
     pthread_t timer_tid;
     pthread_t process_generator_tid;
+    pthread_t scheduler_tid;
     int interval_ms = 500;  // Clock interval in milliseconds
     int ticks_interval = 3; // Timer interval in clock ticks
     int thread_ids[WORKER_THREADSS];
@@ -141,7 +157,9 @@ int main()
     }
 
     pthread_create(&process_generator_tid, NULL, process_generator_thread, NULL);
+    pthread_create(&scheduler_tid, NULL, scheduler_thread, NULL);
 
+    pthread_join(scheduler_tid, NULL);
     pthread_join(process_generator_tid, NULL);
     pthread_join(clock_tid, NULL);
     for (int i = 0; i < WORKER_THREADSS; i++)
