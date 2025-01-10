@@ -32,11 +32,11 @@ Bi ilarak sinkronizazio-mekanismoek babesten dituzte, hala nola mutexek eta bald
 - **Langileen hariak (*Worker Threads*)**: *PUZ*aren nukleoak irudikatzen dituzten hariak dira. Hari horietako bakoitzak prozesu bat gauzatzen du aldi berean, plangintza-politikaren arabera eskuragarri dagoen hurrengo prozesua hartuta. Langileak hiru egoeratan egon daitezke: **READY** (*exekutatzeko prest*),**RUNNING** (*exekutatzen*), edo **FINISHED** (*amaituta*).
 
 
-4-**Tenporizadoreen erabilera**: Sistemak tenporizadore-hari bat (*Timer Thread*) erabiltzen du, eta sistemaren aitzinamendua koordinatzen du, gertaerak aldizka seinaleztatuz. Hari horri esker, exekuzio-hariek, hala nola planifikatzaileak edo langileek, une egokietan erreakzionatu ahal izango dute.
+4- **Tenporizadoreen erabilera**: Sistemak tenporizadore-hari bat (*Timer Thread*) erabiltzen du, eta sistemaren aitzinamendua koordinatzen du, gertaerak aldizka seinaleztatuz. Hari horri esker, exekuzio-hariek, hala nola planifikatzaileak edo langileek, une egokietan erreakzionatu ahal izango dute.
 
--**First Come, First Served (*FCFS*)**: Politika honetan, prozesuak iristen diren ordenan exekutatzen dira. Ez da lehentasun-kontsideraziorik egiten; beraz, sisteman sartzen den lehen prozesua exekutatzen lehena da.
+- **First Come, First Served (*FCFS*)**: Politika honetan, prozesuak iristen diren ordenan exekutatzen dira. Ez da lehentasun-kontsideraziorik egiten; beraz, sisteman sartzen den lehen prozesua exekutatzen lehena da.
 
--**Shortest Job First (*SJF*)**: Hemen, exekuzio-denbora laburrenak dituzten prozesuek lehentasuna dute exekutatuak izateko exekuzio-denbora luzeagoak dituzten prozesuek baino.
+- **Shortest Job First (*SJF*)**: Hemen, exekuzio-denbora laburrenak dituzten prozesuek lehentasuna dute exekutatuak izateko exekuzio-denbora luzeagoak dituzten prozesuek baino.
 
 Bi politika horiek datu-egitura espezifikoen bidez (*ilarak*) ezartzen dira, eta prozesuak dagokion irizpidearen arabera kudeatzen dira.
 
@@ -50,9 +50,9 @@ Diseinu modular horri esker, sistema erraz egokitu daiteke simulazio-agertokieta
 # Sistemaren diseinua eta inplementazioa
 Sistemaren inplementazioak ikuspegi modularra eta harietara bideratua jarraitzen du, non sistemako osagai bakoitza modu independentean kudeatzen den, baina batera lan eginez. Jarraian, sistemaren logika inplementatzen duten kodearen funtsezko funtzioak zehazten dira.
 
-1- **Prozesuen sorrera (*generate_processes*)**:
+1- **Prozesuen sorrera (*process_generator_thread*)**:
 
-- "Generate_processes (*)" funtzioa prozesuak ausaz sortzeaz arduratzen da, identifikadore bakar bat (*PID*) eta tarte konfiguragarri baten barruan zenbatetsitako exekuzio-denbora esleituz.
+- "process_generator_thread" funtzioa prozesuak ausaz sortzeaz arduratzen da, identifikadore bakar bat (*PID*) eta tarte konfiguragarri baten barruan zenbatetsitako exekuzio-denbora esleituz.
 
 - Sortutako prozesuak dagokion ilarara bidaltzen dira, hautatu den plangintza-politikaren arabera. Oraingo bertsioan,**First Come, First Served** (*FCFS*) politika erabiltzen bada, prozesuak ProcessQueue sisteman sartzen dira. **Shortest Job First** (*SJF*) politika hautatzen bada, "*PriorityProcessQueue*" en sartzen dira.
 
@@ -60,13 +60,13 @@ Sistemaren inplementazioak ikuspegi modularra eta harietara bideratua jarraitzen
 
 2- **Prozesuak kolatzea (*enqueue_process*)**:
 
-- "Enqueue_process (*)" funtzioa sortutako prozesuak dagokion ilaran txertatzeaz arduratzen da. Plangintza-politikaren arabera, prozesuak nahi den gauzatze-ordena errespetatzeko moduan gehitzen dira.
+- "Enqueue_process" funtzioa sortutako prozesuak dagokion ilaran txertatzeaz arduratzen da. Plangintza-politikaren arabera, prozesuak nahi den gauzatze-ordena errespetatzeko moduan gehitzen dira.
 
-- Plangintza-politika**FCFS** bada, prozesuak "*ProcessQueue*" delakoari gehitzen zaizkio sekuentzialki. *SJF*rako, prozesuak "*PriorityProcessQueue*"n txertatzen dira, gauzatze-denboraren arabera, eta prozesua ahalik eta denbora laburrenean ilararen buruan egongo dela ziurtatzen da.
+- Plangintza-politika **FCFS** bada, prozesuak "*ProcessQueue*" delakoari gehitzen zaizkio sekuentzialki. *SJF*rako, prozesuak "*PriorityProcessQueue*"n txertatzen dira, gauzatze-denboraren arabera, eta prozesua ahalik eta denbora laburrenean ilararen buruan egongo dela ziurtatzen da.
 
 3- **Plangintza (*scheduler_thread*)**:
 
-- "Scheduler_thread (*)" funtzioak planifikatzailearen portaera inplementatzen du. Hari horrek kontrolatzen du zer prozesu exekutatuko den ondoren. Prozesuak exekutatzeko prest badaude eta langileak prest badaude, planifikatzaileak prozesu bat esleitzen dio eskuragarri dagoen lan-hari honi.
+- "Scheduler_thread" funtzioak planifikatzailearen portaera inplementatzen du. Hari horrek kontrolatzen du zer prozesu exekutatuko den ondoren. Prozesuak exekutatzeko prest badaude eta langileak prest badaude, planifikatzaileak prozesu bat esleitzen dio eskuragarri dagoen lan-hari honi.
 
 - Funtzio honetan, *FCFS* eta *SJF* plangintza-politikak ezartzen dira. *FCFS* rako, planifikatzaileak "*ProcessQueue*" ilarako lehen prozesua esleitzen du. *SJF* rako, planifikatzaileak prozesua hautatzen du, *PriorityProcessQueue* gauzatzeko denborarik laburrenarekin.
 
@@ -74,21 +74,21 @@ Sistemaren inplementazioak ikuspegi modularra eta harietara bideratua jarraitzen
 
 4- **Prozesuak gauzatzea (*worker_thread*)**:
 
-- "Worker_thread (*)" funtzioak *PUZ*aren nukleoak adierazten ditu. Lan-hari bakoitzak ilararen prozesu bat hartzen du (*planifikatzaileak esleitutakoaren arabera*) eta exekutatu egiten du.
+- "Worker_thread" funtzioak *PUZ*aren nukleoak adierazten ditu. Lan-hari bakoitzak ilararen prozesu bat hartzen du (*planifikatzaileak esleitutakoaren arabera*) eta exekutatu egiten du.
 
-- Prozesu baten exekuzioa simulatzeko, prozesua gauzatzeko aurreikusitako denborarekiko proportzionala den atzerapen bat erabiltzen da ("*usleep (*)*" -ekin simulatua), eta prozesua **READY**, **RUNNING**, eta **FINISHED** "egoeretatik igarotzen da.
+- Prozesu baten exekuzioa simulatzeko, prozesua gauzatzeko aurreikusitako denborarekiko proportzionala den atzerapen bat erabiltzen da ("*usleep*" -ekin simulatua), eta prozesua **READY**, **RUNNING**, eta **FINISHED** "egoeretatik igarotzen da.
 
 - Exekuzioan zehar, sinkronizazioa egiten da hariak baliabide partekatuetara modu gatazkatsuan iristen ez direla bermatzeko.
 
 5- **Tenporizadore (*timer_thread*)**:
 
-- "Timer_thread (*)" funtzioak sistemaren erlojua simulatzen du eta tarte erregularretan exekutatzen da, gainerako hariak ekintza bat egin behar dutenean seinalatuz.
+- "Timer_thread" funtzioak sistemaren erlojua simulatzen du eta tarte erregularretan exekutatzen da, gainerako hariak ekintza bat egin behar dutenean seinalatuz.
 
 - Hari hori funtsezkoa da exekuzio-fluxua sinkronian mantentzeko. Aldizkako seinaleak igortzen ditu prozesuak sortzeko eta plangintzak aurrera egiteko, sistemako osagai bakoitzak bere funtzioak une egokian gauzatu ahal izango dituela ziurtatuz.
 
 6- **Konfigurazio-interfazea (*get_config_value*)**:
 - Funtzio honek konfigurazio-parametroak kanpoko fitxategi batetik irakurtzen ditu. Parametro horien artean daude:
-    -  Erabilgarri dauden CPU nukleoen kopurua (*lan-hariak*).
+    - Erabilgarri dauden CPU nukleoen kopurua (*lan-hariak*).
     - Prozesuak sortzen diren arteko denbora-tartea.
     - Erabili beharreko plangintza-politika (*FCFS edo SJF*).
     - Erlojuaren maiztasuna (*milisegundotan*).
