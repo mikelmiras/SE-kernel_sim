@@ -34,8 +34,27 @@ typedef struct
 
 
 typedef struct {
+    char *policy;
+    int interval_ms;
+    int cpu_number;
+    int timer_interval;
+    int process_multiplier;
+} System;
+
+typedef struct {
     int available;
     PCB process;
     int worker_id;
     int consumed_time;
 } Worker;
+
+typedef struct {
+        System *system;
+        Worker *workers;
+    } SchedulerArgs;
+
+
+typedef struct {
+        System *system;
+        Worker *worker;
+} WorkerArgs;
