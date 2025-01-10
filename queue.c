@@ -8,12 +8,12 @@ void enqueue_process(ProcessQueue *pq, PCB process)
         pq->queue[pq->rear] = process;
         pq->rear = (pq->rear + 1) % MAX_PROCESSES;
         pq->size++;
-        printf("[Queue] Proceso PID %d encolado (burst_time: %d ms). Procesos en cola: %d\n",
+        printf("[QUEUE] Process PID %d queued (burst_time: %d ms). Processes ready: %d\n",
                process.pid, process.burst_time, pq->size);
     }
     else
     {
-        printf("[Queue] Cola llena, no se puede encolar el proceso PID %d\n", process.pid);
+        printf("[QUEUE] Queue is full. Couldn't queue process PID %d\n", process.pid);
     }
     pthread_mutex_unlock(&pq->mutex);
     pthread_cond_signal(&pq->cond); // Notificar que hay un nuevo proceso

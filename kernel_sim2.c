@@ -3,10 +3,11 @@
 #include <pthread.h>
 #include <unistd.h>
 #include "queue.h"
+#include <math.h>
 
-#define WORKER_THREADSS 5 // Number of receiver threads
+#define WORKER_THREADS 3  // Number of receiver threads
 #define MAX_PROCESSES 100 // Maximum number of processes
-
+#define CLOCK_FREQUENCY 100
 
 ProcessQueue process_queue = {
     .front = 0,
@@ -24,8 +25,6 @@ pthread_cond_t timer_signal = PTHREAD_COND_INITIALIZER;
 
 int clock_tick = 0;
 
-
-
 // Clock thread function
 void *clock_thread(void *arg)
 {
@@ -37,7 +36,7 @@ void *clock_thread(void *arg)
 
         pthread_mutex_lock(&clock_mutex);
         clock_tick++; // Increment clock tick
-        printf("Clock: Tick %d\n", clock_tick);
+        printf("[CLOCK]: Tick %d\n", clock_tick);
         pthread_cond_broadcast(&clock_signal); // Signal all waiting threads
         pthread_mutex_unlock(&clock_mutex);
     }
@@ -52,48 +51,75 @@ void *process_generator_thread(void *arg)
     {
         pthread_mutex_lock(&timer_mutex);
         pthread_cond_wait(&timer_signal, &timer_mutex);
-        printf("Process Generator: Generating new process\n");
+        printf("[Process Generator]: Generating new process\n");
         pthread_mutex_unlock(&timer_mutex);
+        int random_chance = (rand() % WORKER_THREADS) + 1;
+        for (int i = 0; i < random_chance; i++)
+        {
 
-        PCB new_process = {
-            .pid = pid_counter++,
-            .burst_time = rand() % 500 + 100,
-            .state = READY
-            };
-        enqueue_process(&process_queue, new_process);
+            PCB new_process = {
+                .pid = pid_counter++,
+                .burst_time = rand() % 500 + 100,
+                .state = READY};
+            enqueue_process(&process_queue, new_process);
+        }
     }
 }
 
 void *scheduler_thread(void *arg)
 {
     int pid_counter = 1;
+    Worker *workers = (Worker *)arg;
     while (1)
     {
         pthread_mutex_lock(&timer_mutex);
         pthread_cond_wait(&timer_signal, &timer_mutex);
-        printf("[Scheduler]: Dequeuing new process\n");
+        printf("[Scheduler]: Trying to assign ready processes to available workers\n");
         pthread_mutex_unlock(&timer_mutex);
 
-        PCB next_process = dequeue_process(&process_queue);
-
-
+        PCB *next_process = (PCB *)malloc(sizeof(PCB));
+        for (int i = 0; i < WORKER_THREADS; i++)
+        {
+            Worker *current = &workers[i];
+            if (!current->available)
+                continue;
+            *next_process = dequeue_process(&process_queue);
+            if (next_process->pid != -1)
+            {
+                printf("[Scheduler]: Assigning process PID %d to available CORE %d\n", next_process->pid, current->worker_id);
+                current->process = *next_process;
+            }else{
+                printf("[Scheduler]: No available processes found for CORE %d\n", current->worker_id);
+            }
+        }
 
         // FCFS: El scheduler en cada timer tick iterará por todos los workers disponibles. Si hay un worker libre, se intentará asignar un proceso a ese worker. En esta política, un worker queda libre cuando el proceso ha terminado de ejecutarse.
     }
 }
 
-
 // Receiver thread function
 void *worker_thread(void *arg)
 {
-    int thread_id = *(int *)arg;
+    Worker *worker = (Worker *)arg;
 
     while (1)
     {
         pthread_mutex_lock(&clock_mutex);
         pthread_cond_wait(&clock_signal, &clock_mutex);
-        printf("Thread %d: Clock received\n", thread_id);
         pthread_mutex_unlock(&clock_mutex);
+        PCB *current_process = &(worker->process);
+        if (current_process->pid == -1 || current_process->state == FINISHED)
+            continue;
+        int max_burst_time = fmax(current_process->burst_time, 0);
+        printf("[CORE %d]: Running process PID %d. Remaining burst time: %d\n", worker->worker_id, current_process->pid, max_burst_time);
+        usleep(CLOCK_FREQUENCY * 1000);
+        current_process->burst_time -= CLOCK_FREQUENCY;
+        if (current_process->burst_time <= 0)
+        {
+            printf("[CORE %d]: Process PID %d finished\n", worker->worker_id, current_process->pid);
+            current_process->state = FINISHED;
+            worker->available = 1;
+        }
     }
 
     return NULL;
@@ -117,7 +143,7 @@ void *timer_thread(void *arg)
         pthread_mutex_unlock(&timer_mutex);
 
         last_tick = clock_tick; // Update the last tick
-        printf("Timer: %d clock ticks passed\n", ticks_interval);
+        printf("[TIMER]: Tick\n");
         pthread_mutex_unlock(&clock_mutex);
     }
 
@@ -127,13 +153,13 @@ void *timer_thread(void *arg)
 int main()
 {
     pthread_t clock_tid;
-    pthread_t receiver_tids[WORKER_THREADSS];
+    pthread_t receiver_tids[WORKER_THREADS];
     pthread_t timer_tid;
     pthread_t process_generator_tid;
     pthread_t scheduler_tid;
     int interval_ms = 500;  // Clock interval in milliseconds
     int ticks_interval = 3; // Timer interval in clock ticks
-    int thread_ids[WORKER_THREADSS];
+    int thread_ids[WORKER_THREADS];
 
     // Create the clock thread
     if (pthread_create(&clock_tid, NULL, clock_thread, &interval_ms) != 0)
@@ -141,12 +167,14 @@ int main()
         perror("Failed to create clock thread");
         exit(EXIT_FAILURE);
     }
-
+    Worker WORKERS[WORKER_THREADS];
     // Create the receiver threads
-    for (int i = 0; i < WORKER_THREADSS; i++)
+    for (int i = 0; i < WORKER_THREADS; i++)
     {
-        thread_ids[i] = i + 1;
-        if (pthread_create(&receiver_tids[i], NULL, worker_thread, &thread_ids[i]) != 0)
+        WORKERS[i].available = 1;
+        WORKERS[i].worker_id = i + 1;
+        WORKERS[i].process.pid = -1;
+        if (pthread_create(&receiver_tids[i], NULL, worker_thread, &WORKERS[i]) != 0)
         {
             perror("Failed to create worker thread");
             exit(EXIT_FAILURE);
@@ -161,12 +189,12 @@ int main()
     }
 
     pthread_create(&process_generator_tid, NULL, process_generator_thread, NULL);
-    pthread_create(&scheduler_tid, NULL, scheduler_thread, NULL);
+    pthread_create(&scheduler_tid, NULL, scheduler_thread, &WORKERS);
 
     pthread_join(scheduler_tid, NULL);
     pthread_join(process_generator_tid, NULL);
     pthread_join(clock_tid, NULL);
-    for (int i = 0; i < WORKER_THREADSS; i++)
+    for (int i = 0; i < WORKER_THREADS; i++)
     {
         pthread_join(receiver_tids[i], NULL);
     }

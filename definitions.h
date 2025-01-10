@@ -31,3 +31,10 @@ typedef struct
     pthread_mutex_t mutex;    // Mutex para sincronización
     pthread_cond_t cond;      // Condición para notificar disponibilidad
 } PriorityProcessQueue;
+
+
+typedef struct {
+    int available;
+    PCB process;
+    int worker_id;
+} Worker;
