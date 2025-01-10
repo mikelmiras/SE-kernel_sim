@@ -22,8 +22,8 @@ eta programa abiarazteko:
 ```
 
 ## Konfigurazioa:
-Konfigurazioa ```config``` deitutako fitxategian aurki daiteke (iruzkinak deitu dira azaltzeko zer esan nahi duen aukera bakoitza, baina konfigurazio fitxategiak ezin ditu iruzkinik erabili):
-```
+Konfigurazioa ```config``` deitutako fitxategian aurki daiteke (iruzkinak gehitu dira azaltzeko zer esan nahi duen aukera bakoitza, baina konfigurazio fitxategiak ezin ditu iruzkinik erabili):
+```c
 CORE_COUNT = 4 // CPU-aren nukleo zenbakia ezarri 
 CLOCK_FREQUENCY = 1000 // Erlojuraren maiztasuna (ms-etan)
 TIMER_INTERVAL = 2000 // Timerraren maiztasuna (ms-etan)
