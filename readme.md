@@ -4,7 +4,7 @@ Proiektuaren GitHub errepositorioa: [https://github.com/mikelmiras/SE-kernel_sim
 
 Txosten honetan deskribatutako proiektuaren helburua prozesuak planifikatzeko sistema bat ezartzea da, hainbat prozesuk *PUZ*a lortzeko lehiatzen duten giro multitarea simulatuko duena. Sistema horrek exekuzio-hari ugari (*thread*) erabiltzen ditu prozesuak kudeatzeko, *PUZ*a esleitzeko eta zehaztutako plangintza-politiken arabera ordena egokian gauzatzen direla ziurtatzeko.
 
-Prozesuak planifikatzeko teknika ohikoenak aztertzen dira, hala nola First Come First Served (*FCFS*) eta Shortest Job First (*SJF*). Teknika horiek prozesuak efizientzia-irizpide desberdinen arabera antolatzeko erabiltzen dira. *FCFS* ikuspegi sinple bat da, non prozesuak iristen diren ordenan exekutatzen diren; *SJF*k, berriz, exekuzio-denbora laburragoak dituzten prozesuak lehenesten ditu. Testuinguru horretan, inplementatutako sistemak bi politikak simulatzeko gaitasuna du, eta aukera ematen du haien jarduna hainbat agertokitan alderatzeko.
+Prozesuak planifikatzeko teknika ohikoenak aztertzen dira, hala nola First Come First Served (**FCFS**) eta Shortest Job First (**SJF**). Teknika horiek prozesuak efizientzia-irizpide desberdinen arabera antolatzeko erabiltzen dira. *FCFS* ikuspegi sinple bat da, non prozesuak iristen diren ordenan exekutatzen diren; *SJF*k, berriz, exekuzio-denbora laburragoak dituzten prozesuak lehenesten ditu. Testuinguru horretan, inplementatutako sistemak bi politikak simulatzeko gaitasuna du, eta aukera ematen du haien jarduna hainbat agertokitan alderatzeko.
 
 Simulazioan, halaber, etendura-sistema bat kudeatzen da, erloju simulatu baten bidez. Erloju horrek gertaerak sortzen ditu tarte erregularretan, prozesuen egoera-trantsizioak aktibatzeko eta abiarazteko. Sistema hori hari anitzeko arkitektura erabiliz inplementatzen da, eta hariek *PUZ*ean exekutatzen diren prozesuak nahiz ekitaldien kudeaketaz, programazioaz eta prozesuen egoeren jarraipenaz arduratzen direnak irudikatzen dituzte.
 
@@ -41,16 +41,16 @@ Bi ilarak sinkronizazio-mekanismoek babesten dituzte, hala nola mutexek eta bald
 Bi politika horiek datu-egitura espezifikoen bidez (*ilarak*) ezartzen dira, eta prozesuak dagokion irizpidearen arabera kudeatzen dira.
 
 
-6-**Harien sinkronizazioa**: Sistemak hainbat hari erabiltzen dituenez hainbat funtzio exekutatzeko, haien arteko sinkronizazioa funtsezkoa da. Mutexeak eta baldintza-aldagaiak (*kondizio aldakorrak*) erabiltzen dira baliabide partekatuak, hala nola prozesu-ilarak eta erloju-seinaleak, modu seguruan eta efizientean kudeatuko direla bermatzeko.
+5- **Harien sinkronizazioa**: Sistemak hainbat hari erabiltzen dituenez hainbat funtzio exekutatzeko, haien arteko sinkronizazioa funtsezkoa da. Mutexeak eta baldintza-aldagaiak (*kondizio aldakorrak*) erabiltzen dira baliabide partekatuak, hala nola prozesu-ilarak eta erloju-seinaleak, modu seguruan eta efizientean kudeatuko direla bermatzeko.
 
-7-**Sistemaren konfigurazioa**: Sistema oso konfiguragarria da konfigurazio-fitxategi baten bidez. Aukera konfiguragarrien artean daude *PUZ*en nukleo kopurua (*lan-hariak*), erlojuaren maiztasuna (*milisegundotan*), prozesuak sortzeko biderkatzailea (*sortutako prozesu kopurua zehazten du*) eta erabili beharreko plangintza-politika (*FCFS edo SJF*). Parametro horiek konfigurazio-fitxategi batetik irakurtzen dira, eta hasten direnean aplikatzen zaizkio sistemari.
+6- **Sistemaren konfigurazioa**: Sistema oso konfiguragarria da konfigurazio-fitxategi baten bidez. Aukera konfiguragarrien artean daude *PUZ*en nukleo kopurua (*lan-hariak*), erlojuaren maiztasuna (*milisegundotan*), prozesuak sortzeko biderkatzailea (*sortutako prozesu kopurua zehazten du*) eta erabili beharreko plangintza-politika (*FCFS edo SJF*). Parametro horiek konfigurazio-fitxategi batetik irakurtzen dira, eta hasten direnean aplikatzen zaizkio sistemari.
 
 Diseinu modular horri esker, sistema erraz egokitu daiteke simulazio-agertokietara, eta plangintza-politiken arteko konparazio-probak egin daitezke.
 
 # Sistemaren diseinua eta inplementazioa
 Sistemaren inplementazioak ikuspegi modularra eta harietara bideratua jarraitzen du, non sistemako osagai bakoitza modu independentean kudeatzen den, baina batera lan eginez. Jarraian, sistemaren logika inplementatzen duten kodearen funtsezko funtzioak zehazten dira.
 
-1-**Prozesuen sorrera (*generate_processes*)**:
+1- **Prozesuen sorrera (*generate_processes*)**:
 
 - "Generate_processes (*)" funtzioa prozesuak ausaz sortzeaz arduratzen da, identifikadore bakar bat (*PID*) eta tarte konfiguragarri baten barruan zenbatetsitako exekuzio-denbora esleituz.
 
@@ -58,13 +58,13 @@ Sistemaren inplementazioak ikuspegi modularra eta harietara bideratua jarraitzen
 
 - Funtzioa aldizka exekutatzen da hari batean, eta horrek prozesuak tarte erregularretan sortzen direla ziurtatzen du.
 
-2-**Prozesuak kolatzea (*enqueue_process*)**:
+2- **Prozesuak kolatzea (*enqueue_process*)**:
 
 - "Enqueue_process (*)" funtzioa sortutako prozesuak dagokion ilaran txertatzeaz arduratzen da. Plangintza-politikaren arabera, prozesuak nahi den gauzatze-ordena errespetatzeko moduan gehitzen dira.
 
 - Plangintza-politika**FCFS** bada, prozesuak "*ProcessQueue*" delakoari gehitzen zaizkio sekuentzialki. *SJF*rako, prozesuak "*PriorityProcessQueue*"n txertatzen dira, gauzatze-denboraren arabera, eta prozesua ahalik eta denbora laburrenean ilararen buruan egongo dela ziurtatzen da.
 
-3-**Plangintza (*scheduler_thread*)**:
+3- **Plangintza (*scheduler_thread*)**:
 
 - "Scheduler_thread (*)" funtzioak planifikatzailearen portaera inplementatzen du. Hari horrek kontrolatzen du zer prozesu exekutatuko den ondoren. Prozesuak exekutatzeko prest badaude eta langileak prest badaude, planifikatzaileak prozesu bat esleitzen dio eskuragarri dagoen lan-hari honi.
 
@@ -72,7 +72,7 @@ Sistemaren inplementazioak ikuspegi modularra eta harietara bideratua jarraitzen
 
 - Gainera, planifikatzaileak mutexeak eta baldintza-aldagaiak erabiliz sinkronizatzen ditu hariak, baliabideak modu seguruan eta eraginkorrean partekatuko direla bermatuz.
 
-4-**Prozesuak gauzatzea (*worker_thread*)**:
+4- **Prozesuak gauzatzea (*worker_thread*)**:
 
 - "Worker_thread (*)" funtzioak *PUZ*aren nukleoak adierazten ditu. Lan-hari bakoitzak ilararen prozesu bat hartzen du (*planifikatzaileak esleitutakoaren arabera*) eta exekutatu egiten du.
 
@@ -80,13 +80,13 @@ Sistemaren inplementazioak ikuspegi modularra eta harietara bideratua jarraitzen
 
 - Exekuzioan zehar, sinkronizazioa egiten da hariak baliabide partekatuetara modu gatazkatsuan iristen ez direla bermatzeko.
 
-5-**Tenporizadore (*timer_thread*)**:
+5- **Tenporizadore (*timer_thread*)**:
 
 - "Timer_thread (*)" funtzioak sistemaren erlojua simulatzen du eta tarte erregularretan exekutatzen da, gainerako hariak ekintza bat egin behar dutenean seinalatuz.
 
 - Hari hori funtsezkoa da exekuzio-fluxua sinkronian mantentzeko. Aldizkako seinaleak igortzen ditu prozesuak sortzeko eta plangintzak aurrera egiteko, sistemako osagai bakoitzak bere funtzioak une egokian gauzatu ahal izango dituela ziurtatuz.
 
-7-**Konfigurazio-interfazea (*get_config_value*)**:
+6- **Konfigurazio-interfazea (*get_config_value*)**:
 - Funtzio honek konfigurazio-parametroak kanpoko fitxategi batetik irakurtzen ditu. Parametro horien artean daude:
     -  Erabilgarri dauden CPU nukleoen kopurua (*lan-hariak*).
     - Prozesuak sortzen diren arteko denbora-tartea.
@@ -95,7 +95,7 @@ Sistemaren inplementazioak ikuspegi modularra eta harietara bideratua jarraitzen
 
 - Balio horiek sistema konfiguratzeko eta haren portaera zuzenean aldatu beharrik gabe aldatzeko erabiltzen dira.
 
-8-**Sinkronizazioa (*mutexak eta baldintza-aldagaiak*)**:
+7- **Sinkronizazioa (*mutexak eta baldintza-aldagaiak*)**:
 
 - Harien konkurrentzia maneiatzeko eta ibiltarte-baldintzak saihesteko, sistemak hainbat sinkronizazio-teknika erabiltzen ditu, hala nola mutexak (*honako mutex_pthread_mutex_t*) eta baldintza-aldagaiak.
 
