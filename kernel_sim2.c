@@ -5,7 +5,7 @@
 #include "queue.h"
 #include <math.h>
 
-#define WORKER_THREADS 3  // Number of receiver threads
+#define WORKER_THREADS 4  // Number of receiver threads
 #define MAX_PROCESSES 100 // Maximum number of processes
 #define CLOCK_FREQUENCY 100
 
@@ -88,6 +88,7 @@ void *scheduler_thread(void *arg)
             {
                 printf("[Scheduler]: Assigning process PID %d to available CORE %d\n", next_process->pid, current->worker_id);
                 current->process = *next_process;
+                current->available = 0;
             }else{
                 printf("[Scheduler]: No available processes found for CORE %d\n", current->worker_id);
             }
@@ -114,11 +115,13 @@ void *worker_thread(void *arg)
         printf("[CORE %d]: Running process PID %d. Remaining burst time: %d\n", worker->worker_id, current_process->pid, max_burst_time);
         usleep(CLOCK_FREQUENCY * 1000);
         current_process->burst_time -= CLOCK_FREQUENCY;
+        worker->consumed_time += CLOCK_FREQUENCY;
         if (current_process->burst_time <= 0)
         {
-            printf("[CORE %d]: Process PID %d finished\n", worker->worker_id, current_process->pid);
+            printf("[CORE %d]: Process PID %d finished. Total consumed time for this process: %d\n", worker->worker_id, current_process->pid, worker->consumed_time);
             current_process->state = FINISHED;
             worker->available = 1;
+            worker->consumed_time = 0;
         }
     }
 
@@ -174,6 +177,7 @@ int main()
         WORKERS[i].available = 1;
         WORKERS[i].worker_id = i + 1;
         WORKERS[i].process.pid = -1;
+        WORKERS[i].consumed_time = 0;
         if (pthread_create(&receiver_tids[i], NULL, worker_thread, &WORKERS[i]) != 0)
         {
             perror("Failed to create worker thread");

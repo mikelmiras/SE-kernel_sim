@@ -37,4 +37,5 @@ typedef struct {
     int available;
     PCB process;
     int worker_id;
+    int consumed_time;
 } Worker;
