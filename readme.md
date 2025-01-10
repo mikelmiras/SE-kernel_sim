@@ -2,7 +2,7 @@ Proiektuaren GitHub errepositorioa: [https://github.com/mikelmiras/SE-kernel_sim
 
 # Sarrera
 
-Txosten honetan deskribatutako proiektuaren helburua prozesuak planifikatzeko sistema bat ezartzea da, hainbat prozesuk *PUZ*a lortzeko lehiatzen duten giro multiitarea simulatuko duena. Sistema horrek exekuzio-hari ugari (*thread*) erabiltzen ditu prozesuak kudeatzeko, *PUZ*a esleitzeko eta zehaztutako plangintza-politiken arabera ordena egokian gauzatzen direla ziurtatzeko.
+Txosten honetan deskribatutako proiektuaren helburua prozesuak planifikatzeko sistema bat ezartzea da, hainbat prozesuk *PUZ*a lortzeko lehiatzen duten giro multitarea simulatuko duena. Sistema horrek exekuzio-hari ugari (*thread*) erabiltzen ditu prozesuak kudeatzeko, *PUZ*a esleitzeko eta zehaztutako plangintza-politiken arabera ordena egokian gauzatzen direla ziurtatzeko.
 
 Prozesuak planifikatzeko teknika ohikoenak aztertzen dira, hala nola First Come First Served (*FCFS*) eta Shortest Job First (*SJF*). Teknika horiek prozesuak efizientzia-irizpide desberdinen arabera antolatzeko erabiltzen dira. *FCFS* ikuspegi sinple bat da, non prozesuak iristen diren ordenan exekutatzen diren; *SJF*k, berriz, exekuzio-denbora laburragoak dituzten prozesuak lehenesten ditu. Testuinguru horretan, inplementatutako sistemak bi politikak simulatzeko gaitasuna du, eta aukera ematen du haien jarduna hainbat agertokitan alderatzeko.
 
