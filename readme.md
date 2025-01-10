@@ -1,97 +1,102 @@
-# Introducción
+Proiektuaren GitHub errepositorioa: [https://github.com/mikelmiras/SE-kernel_sim](https://github.com/mikelmiras/SE-kernel_sim)
 
-El propósito del proyecto descrito en este reporte es la implementación de un sistema de planificación de procesos que simule un ambiente multitarea en el que varios procesos compiten por la CPU. Este sistema utiliza múltiples hilos de ejecución (threads) para gestionar los procesos, asignarles la CPU y asegurar que se ejecuten en el orden correcto de acuerdo con las políticas de planificación especificadas.
+# Sarrera
 
-Se exploran las técnicas de planificación de procesos más comunes, como First Come First Served (FCFS) y Shortest Job First (SJF), las cuales se emplean para organizar los procesos según diferentes criterios de eficiencia. FCFS es un enfoque sencillo en el que los procesos se ejecutan en el orden en que llegan, mientras que SJF prioriza los procesos con tiempos de ejecución más cortos. En este contexto, el sistema implementado tiene la capacidad de simular ambas políticas, permitiendo comparar su desempeño en diferentes escenarios.
+Txosten honetan deskribatutako proiektuaren helburua prozesuak planifikatzeko sistema bat ezartzea da, hainbat prozesuk *PUZ*a lortzeko lehiatzen duten giro multiitarea simulatuko duena. Sistema horrek exekuzio-hari ugari (*thread*) erabiltzen ditu prozesuak kudeatzeko, *PUZ*a esleitzeko eta zehaztutako plangintza-politiken arabera ordena egokian gauzatzen direla ziurtatzeko.
 
-La simulación también incluye la gestión de un sistema de interrupciones a través de un reloj simulado, el cual genera eventos a intervalos regulares para activar y desencadenar las transiciones de estado de los procesos. Este sistema se implementa utilizando una arquitectura multihilo, donde los hilos representan tanto los procesos que se ejecutan en la CPU como los encargados de la gestión de eventos, la programación y el seguimiento de los estados de los procesos.
+Prozesuak planifikatzeko teknika ohikoenak aztertzen dira, hala nola First Come First Served (*FCFS*) eta Shortest Job First (*SJF*). Teknika horiek prozesuak efizientzia-irizpide desberdinen arabera antolatzeko erabiltzen dira. *FCFS* ikuspegi sinple bat da, non prozesuak iristen diren ordenan exekutatzen diren; *SJF*k, berriz, exekuzio-denbora laburragoak dituzten prozesuak lehenesten ditu. Testuinguru horretan, inplementatutako sistemak bi politikak simulatzeko gaitasuna du, eta aukera ematen du haien jarduna hainbat agertokitan alderatzeko.
+
+Simulazioan, halaber, etendura-sistema bat kudeatzen da, erloju simulatu baten bidez. Erloju horrek gertaerak sortzen ditu tarte erregularretan, prozesuen egoera-trantsizioak aktibatzeko eta abiarazteko. Sistema hori hari anitzeko arkitektura erabiliz inplementatzen da, eta hariek *PUZ*ean exekutatzen diren prozesuak nahiz ekitaldien kudeaketaz, programazioaz eta prozesuen egoeren jarraipenaz arduratzen direnak irudikatzen dituzte.
 
 
-# Descripción general del sistema
-El sistema desarrollado es una simulación de la planificación de procesos en un sistema operativo multitarea. Este simula un entorno donde múltiples procesos son generados, encolados y ejecutados por la CPU de acuerdo con una política de planificación. A continuación, se describe cada uno de los componentes que forman parte de este sistema.
+# Sistemaren deskribapen orokorra
 
-1- **Generación de procesos**: El sistema tiene un hilo dedicado a la generación de procesos. Este hilo se encarga de crear nuevos procesos a intervalos regulares, de acuerdo con un multiplicador de generación de procesos que se ajusta en la configuración del sistema. Cada proceso tiene un identificador único (PID), un tiempo de ejecución estimado (burst time) y un estado, que puede ser READY, RUNNING, o FINISHED. Los procesos son generados aleatoriamente con un tiempo de ejecución dentro de un rango determinado.
+Garatutako sistema prozesuen plangintzaren simulazio bat da, ataza anitzeko sistema eragile batean. Ingurune horretan, prozesu ugari sortzen, kolatzen eta gauzatzen ditu *PUZ*ak, plangintza-politika baten arabera. Jarraian, sistema hau osatzen duten osagai guztiak deskribatuko ditugu.
 
-2- **Encolado de Procesos**:
+1- **Prozesuak sortzea**: Sistemak prozesuak sortzeko hari bat du. Hari horrek prozesu berriak sortzen ditu tarte erregularretan, sistemaren konfigurazioan egokitzen den prozesuak sortzeko biderkatzaile baten arabera. Prozesu bakoitzak identifikatzaile bakarra (*PID*), exekuzio-denbora zenbatetsia (*burst time*) eta egoera bat ditu, **READY**, **RUNNING** edo **FINISHED** izan daitekeena. Prozesuak ausaz sortzen dira, tarte jakin bateko exekuzio-denborarekin.
 
--   **Cola de procesos (ProcessQueue)**: Esta cola contiene los procesos listos para ser ejecutados, siguiendo la política de planificación First Come, First Served (FCFS), donde los procesos se ejecutan en el orden en que llegaron.
-- **Cola de Procesos Prioritarios (PriorityProcessQueue)**: Esta cola es utilizada cuando se emplea la política Shortest Job First (SJF), donde los procesos con menor tiempo de ejecución tienen mayor prioridad para ser ejecutados primero.
+2- **Prozesuak kolatzea**:
 
-Ambas colas están protegidas por mecanismos de sincronización como mutexes y condiciones, lo que asegura un acceso seguro a las colas en un entorno multihilo.
+-   **Prozesu-ilara (*ProcessQueue*)**: Ilara honek gauzatzeko prest dauden prozesuak biltzen ditu, First Come, First Served (*FCFS*) plangintza-politikari jarraituz, non prozesuak iritsi ziren ordenan exekutatzen diren.
+- **Lehentasunezko prozesuen ilara (*PriorityProcessQueue*)**: Ilara hau Shortest Job First (*SJF*) politika erabiltzen denean erabiltzen da, non exekuzio-denbora laburragoa duten prozesuek lehentasun handiagoa duten lehenengo exekutatzeko.
 
-3- **Hilos de planificación y ejecución**: El sistema está compuesto por varios hilos de ejecución, cada uno con una función específica:
-- **Hilo del Reloj (Clock Thread)**: Este hilo simula un reloj de alta precisión que genera eventos a intervalos regulares, lo que permite sincronizar la ejecución de los procesos y coordinar el avance del sistema.
+Bi ilarak sinkronizazio-mekanismoek babesten dituzte, hala nola mutexek eta baldintzek. Horri esker, buztanetarako sarbide segurua bermatzen da hari anitzeko ingurune batean.
 
-- **Hilo Generador de Procesos (Process Generator Thread)**: Se encarga de generar nuevos procesos en función del intervalo de tiempo configurado.
+3- **Plangintza- eta gauzatze-hariak**: Egikaritze-hariek osatzen dute sistema, eta bakoitzak funtzio espezifiko bat du:
+- **Erlojuaren haria (*Clock Thread*)**: Hari horrek doitasun handiko erloju bat simulatzen du, eta horrek gertaerak sortzen ditu tarte erregularretan, prozesuen exekuzioa sinkronizatzeko eta sistemaren aitzinamendua koordinatzeko.
 
-- **Hilo del Planificador (Scheduler Thread)**: Este hilo se encarga de asignar los procesos listos a los trabajadores disponibles (hilos de la CPU), respetando la política de planificación seleccionada. Si hay procesos disponibles y trabajadores libres, el planificador les asigna los procesos, actualizando su estado y el estado de los trabajadores.
+- **Prozesuak sortzeko haria(*Process Generator Thread*)**: Prozesu berriak sortzeaz arduratzen da, konfiguratutako denbora-tartearen arabera.
 
-- **Hilos de Trabajadores (Worker Threads)**: Son los hilos que representan los núcleos de la CPU. Cada uno de estos hilos ejecuta un proceso a la vez, tomando el siguiente proceso disponible según la política de planificación. Los trabajadores pueden estar en tres estados: **READY** (listos para ejecutar), **RUNNING** (ejecutando), o **FINISHED** (finalizados).
+- **Planifikatzailearen haria (*Scheduler Thread*)**: Hari hori arduratzen da eskura dauden langileei prozesuak esleitzeaz (*PUZaren hariak*), hautatutako plangintza-politika errespetatuz. Prozesuak eskuragarri badaude eta langileak libre badaude, planifikatzaileak prozesuak esleitzen dizkie, haien egoera eta langileen egoera eguneratuz.
 
-4- **Manejo de Temporizadores**: El sistema utiliza un hilo de temporizador (Timer Thread) que coordina el avance del sistema mediante la señalización de eventos a intervalos regulares. Este hilo asegura que los hilos de ejecución, como el planificador o los trabajadores, puedan reaccionar en los momentos correctos.
+- **Langileen hariak (*Worker Threads*)**: *PUZ*aren nukleoak irudikatzen dituzten hariak dira. Hari horietako bakoitzak prozesu bat gauzatzen du aldi berean, plangintza-politikaren arabera eskuragarri dagoen hurrengo prozesua hartuta. Langileak hiru egoeratan egon daitezke: **READY** (*exekutatzeko prest*),**RUNNING** (*exekutatzen*), edo **FINISHED** (*amaituta*).
 
-- **First Come, First Served (FCFS)**: En esta política, los procesos se ejecutan en el orden en que llegan. No se realiza ninguna consideración de priorización, por lo que el primer proceso que entra en el sistema es el primero en ser ejecutado.
 
-- **Shortest Job First (SJF)**: Aquí, los procesos con los tiempos de ejecución más cortos tienen prioridad para ser ejecutados antes que los procesos con tiempos de ejecución más largos.
+4-**Tenporizadoreen erabilera**: Sistemak tenporizadore-hari bat (*Timer Thread*) erabiltzen du, eta sistemaren aitzinamendua koordinatzen du, gertaerak aldizka seinaleztatuz. Hari horri esker, exekuzio-hariek, hala nola planifikatzaileak edo langileek, une egokietan erreakzionatu ahal izango dute.
 
-Ambas políticas se implementan mediante estructuras de datos específicas (colas) y los procesos se gestionan según el criterio correspondiente.
+-**First Come, First Served (*FCFS*)**: Politika honetan, prozesuak iristen diren ordenan exekutatzen dira. Ez da lehentasun-kontsideraziorik egiten; beraz, sisteman sartzen den lehen prozesua exekutatzen lehena da.
 
-6- **Sincronización de hilos**: Debido a que el sistema utiliza múltiples hilos para ejecutar diferentes funciones, la sincronización entre ellos es fundamental. Se utilizan mutexes y variables de condición (condition variables) para garantizar que los recursos compartidos, como las colas de procesos y las señales de reloj, sean gestionados de manera segura y eficiente.
+-**Shortest Job First (*SJF*)**: Hemen, exekuzio-denbora laburrenak dituzten prozesuek lehentasuna dute exekutatuak izateko exekuzio-denbora luzeagoak dituzten prozesuek baino.
 
-7- **Configuración del Sistema**: El sistema es altamente configurable mediante un archivo de configuración. Entre las opciones configurables se incluyen el número de núcleos de CPU (hilos de trabajo), la frecuencia del reloj (en milisegundos), el multiplicador de generación de procesos (que determina la cantidad de procesos generados) y la política de planificación a utilizar (FCFS o SJF). Estos parámetros son leídos desde un archivo de configuración y aplicados al sistema al momento de su inicio.
+Bi politika horiek datu-egitura espezifikoen bidez (*ilarak*) ezartzen dira, eta prozesuak dagokion irizpidearen arabera kudeatzen dira.
 
-Este diseño modular permite adaptar fácilmente el sistema a diferentes escenarios de simulación y realizar pruebas comparativas entre las distintas políticas de planificación.
 
-# Diseño e implementación del sistema
-La implementación del sistema sigue un enfoque modular y orientado a hilos, donde cada componente del sistema se gestiona de forma independiente, pero trabajando en conjunto. A continuación, se detallan las funciones clave del código que implementan la lógica del sistema.
+6-**Harien sinkronizazioa**: Sistemak hainbat hari erabiltzen dituenez hainbat funtzio exekutatzeko, haien arteko sinkronizazioa funtsezkoa da. Mutexeak eta baldintza-aldagaiak (*kondizio aldakorrak*) erabiltzen dira baliabide partekatuak, hala nola prozesu-ilarak eta erloju-seinaleak, modu seguruan eta efizientean kudeatuko direla bermatzeko.
 
-1- **Generación de Procesos (generate_processes)**:
+7-**Sistemaren konfigurazioa**: Sistema oso konfiguragarria da konfigurazio-fitxategi baten bidez. Aukera konfiguragarrien artean daude *PUZ*en nukleo kopurua (*lan-hariak*), erlojuaren maiztasuna (*milisegundotan*), prozesuak sortzeko biderkatzailea (*sortutako prozesu kopurua zehazten du*) eta erabili beharreko plangintza-politika (*FCFS edo SJF*). Parametro horiek konfigurazio-fitxategi batetik irakurtzen dira, eta hasten direnean aplikatzen zaizkio sistemari.
 
-- La función ``generate_processes()`` es responsable de crear los procesos de forma aleatoria, asignándoles un identificador único (PID) y un tiempo de ejecución estimado dentro de un rango configurable. 
+Diseinu modular horri esker, sistema erraz egokitu daiteke simulazio-agertokietara, eta plangintza-politiken arteko konparazio-probak egin daitezke.
 
-- Los procesos generados son enviados a la cola correspondiente según la política de planificación que se haya seleccionado. En la versión actual, si se utiliza la política **First Come, First Served (FCFS)**, los procesos se encolan en la ProcessQueue. Si se selecciona la política **Shortest Job First (SJF)**, se encolan en la ``PriorityProcessQueue``.
+# Sistemaren diseinua eta inplementazioa
+Sistemaren inplementazioak ikuspegi modularra eta harietara bideratua jarraitzen du, non sistemako osagai bakoitza modu independentean kudeatzen den, baina batera lan eginez. Jarraian, sistemaren logika inplementatzen duten kodearen funtsezko funtzioak zehazten dira.
 
-- La función es ejecutada periódicamente en un hilo, lo que asegura que se generen procesos a intervalos regulares.
+1-**Prozesuen sorrera (*generate_processes*)**:
 
-2- **Encolado de Procesos (enqueue_process)**:
+- "Generate_processes (*)" funtzioa prozesuak ausaz sortzeaz arduratzen da, identifikadore bakar bat (*PID*) eta tarte konfiguragarri baten barruan zenbatetsitako exekuzio-denbora esleituz.
 
-- La función ``enqueue_process()`` se encarga de insertar los procesos generados en la cola correspondiente. Dependiendo de la política de planificación, los procesos se añaden de manera que se respete el orden de ejecución deseado.
+- Sortutako prozesuak dagokion ilarara bidaltzen dira, hautatu den plangintza-politikaren arabera. Oraingo bertsioan,**First Come, First Served** (*FCFS*) politika erabiltzen bada, prozesuak ProcessQueue sisteman sartzen dira. **Shortest Job First** (*SJF*) politika hautatzen bada, "*PriorityProcessQueue*" en sartzen dira.
 
-- Si la política de planificación es **FCFS**, los procesos se agregan a la ``ProcessQueue`` de manera secuencial. Para **SJF**, los procesos se insertan en la ``PriorityProcessQueue`` de acuerdo con su tiempo de ejecución, asegurando que el proceso con el menor tiempo de ejecución esté al frente de la cola.
+- Funtzioa aldizka exekutatzen da hari batean, eta horrek prozesuak tarte erregularretan sortzen direla ziurtatzen du.
 
-3- **Planificación (scheduler_thread)**:
+2-**Prozesuak kolatzea (*enqueue_process*)**:
 
-- La función ``scheduler_thread()`` implementa el comportamiento del planificador. Este hilo controla qué proceso se ejecutará a continuación. Si hay procesos listos para ejecutarse y trabajadores disponibles, el planificador asigna un proceso al siguiente hilo de trabajo disponible.
+- "Enqueue_process (*)" funtzioa sortutako prozesuak dagokion ilaran txertatzeaz arduratzen da. Plangintza-politikaren arabera, prozesuak nahi den gauzatze-ordena errespetatzeko moduan gehitzen dira.
 
-- En esta función, se implementan las políticas de planificación **FCFS** y **SJF**. Para **FCFS**, el planificador simplemente asigna el primer proceso de la cola ``ProcessQueue``. Para **SJF**, el planificador selecciona el proceso con el menor tiempo de ejecución de la PriorityProcessQueue.
+- Plangintza-politika**FCFS** bada, prozesuak "*ProcessQueue*" delakoari gehitzen zaizkio sekuentzialki. *SJF*rako, prozesuak "*PriorityProcessQueue*"n txertatzen dira, gauzatze-denboraren arabera, eta prozesua ahalik eta denbora laburrenean ilararen buruan egongo dela ziurtatzen da.
 
-- Además, el planificador realiza la sincronización entre los hilos utilizando mutexes y variables de condición, garantizando que los recursos sean compartidos de forma segura y eficiente.
+3-**Plangintza (*scheduler_thread*)**:
 
-4- **Ejecución de Procesos (worker_thread)**:
+- "Scheduler_thread (*)" funtzioak planifikatzailearen portaera inplementatzen du. Hari horrek kontrolatzen du zer prozesu exekutatuko den ondoren. Prozesuak exekutatzeko prest badaude eta langileak prest badaude, planifikatzaileak prozesu bat esleitzen dio eskuragarri dagoen lan-hari honi.
 
-- La función ``worker_thread()`` representa los núcleos de la CPU. Cada hilo de trabajo toma un proceso de la cola (según lo asignado por el planificador) y lo ejecuta.
+- Funtzio honetan, *FCFS* eta *SJF* plangintza-politikak ezartzen dira. *FCFS* rako, planifikatzaileak "*ProcessQueue*" ilarako lehen prozesua esleitzen du. *SJF* rako, planifikatzaileak prozesua hautatzen du, *PriorityProcessQueue* gauzatzeko denborarik laburrenarekin.
 
-- La ejecución de un proceso es simulada mediante un retraso de tiempo proporcional al tiempo de ejecución estimado del proceso (simulado con ``usleep()``), y el proceso pasa por los estados **READY**, **RUNNING**, y **FINISHED**.
+- Gainera, planifikatzaileak mutexeak eta baldintza-aldagaiak erabiliz sinkronizatzen ditu hariak, baliabideak modu seguruan eta eraginkorrean partekatuko direla bermatuz.
 
-- Durante la ejecución, se realiza la sincronización para garantizar que los hilos no accedan de manera conflictiva a los recursos compartidos.
+4-**Prozesuak gauzatzea (*worker_thread*)**:
 
-5- **Temporizador (timer_thread)**:
+- "Worker_thread (*)" funtzioak *PUZ*aren nukleoak adierazten ditu. Lan-hari bakoitzak ilararen prozesu bat hartzen du (*planifikatzaileak esleitutakoaren arabera*) eta exekutatu egiten du.
 
-- La función ``timer_thread()`` simula el reloj del sistema y se ejecuta a intervalos regulares, señalando a los demás hilos cuando deben realizar una acción.
+- Prozesu baten exekuzioa simulatzeko, prozesua gauzatzeko aurreikusitako denborarekiko proportzionala den atzerapen bat erabiltzen da ("*usleep (*)*" -ekin simulatua), eta prozesua **READY**, **RUNNING**, eta **FINISHED** "egoeretatik igarotzen da.
 
-- Este hilo es crucial para mantener el flujo de ejecución en sincronía. Emite señales periódicas para la creación de procesos y el avance de la planificación, asegurando que cada componente del sistema pueda ejecutar sus funciones en el momento adecuado.
+- Exekuzioan zehar, sinkronizazioa egiten da hariak baliabide partekatuetara modu gatazkatsuan iristen ez direla bermatzeko.
 
-7- **Interfaz de Configuración (get_config_value)**:
-- Esta función se encarga de leer los parámetros de configuración desde un archivo externo. Estos parámetros incluyen:
-    - El número de núcleos de CPU disponibles (hilos de trabajo).
-    - El intervalo de tiempo entre la generación de procesos.
-    - La política de planificación a utilizar (FCFS o SJF).
-    - La frecuencia del reloj (en milisegundos).
+5-**Tenporizadore (*timer_thread*)**:
 
-- Estos valores son utilizados para configurar el sistema y permitir que el comportamiento del mismo sea modificado sin necesidad de modificar el código directamente.
+- "Timer_thread (*)" funtzioak sistemaren erlojua simulatzen du eta tarte erregularretan exekutatzen da, gainerako hariak ekintza bat egin behar dutenean seinalatuz.
 
-8- **Sincronización (mutexes y variables de condición)**:
+- Hari hori funtsezkoa da exekuzio-fluxua sinkronian mantentzeko. Aldizkako seinaleak igortzen ditu prozesuak sortzeko eta plangintzak aurrera egiteko, sistemako osagai bakoitzak bere funtzioak une egokian gauzatu ahal izango dituela ziurtatuz.
 
-- Para manejar la concurrencia de los hilos y evitar condiciones de carrera, el sistema emplea diversas técnicas de sincronización, como mutexes (``pthread_mutex_t``) y variables de condición (``pthread_cond_t``).
+7-**Konfigurazio-interfazea (*get_config_value*)**:
+- Funtzio honek konfigurazio-parametroak kanpoko fitxategi batetik irakurtzen ditu. Parametro horien artean daude:
+    -  Erabilgarri dauden CPU nukleoen kopurua (*lan-hariak*).
+    - Prozesuak sortzen diren arteko denbora-tartea.
+    - Erabili beharreko plangintza-politika (*FCFS edo SJF*).
+    - Erlojuaren maiztasuna (*milisegundotan*).
 
-- Por ejemplo, las funciones que manipulan las colas de procesos utilizan mutexes para asegurar que un proceso no sea encolado o desencolado por múltiples hilos al mismo tiempo. Las variables de condición se utilizan para notificar a los hilos cuando es el momento de ejecutar un proceso o cuando hay nuevos procesos en la cola que deben ser atendidos.
+- Balio horiek sistema konfiguratzeko eta haren portaera zuzenean aldatu beharrik gabe aldatzeko erabiltzen dira.
+
+8-**Sinkronizazioa (*mutexak eta baldintza-aldagaiak*)**:
+
+- Harien konkurrentzia maneiatzeko eta ibiltarte-baldintzak saihesteko, sistemak hainbat sinkronizazio-teknika erabiltzen ditu, hala nola mutexak (*honako mutex_pthread_mutex_t*) eta baldintza-aldagaiak.
+
+- Adibidez, prozesu-ilarek manipulatzen dituzten funtzioek mutexak erabiltzen dituzte prozesu bat aldi berean hari ugariren bidez kolatzen edo askatzen ez dela ziurtatzeko. Baldintza-aldagaiak hariei jakinarazteko erabiltzen dira prozesu bat gauzatzeko unea denean edo ilaran artatu beharreko prozesu berriak daudenean.
